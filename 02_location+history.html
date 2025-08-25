@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>Location & History 상세 실습</title>
+    <style>
+        body { font-family: sans-serif; line-height: 1.8; padding: 25px; background-color: #f4f7f6; }
+        .container { max-width: 800px; margin: auto; border: 1px solid lightgray; padding: 20px; border-radius: 10px; background-color: white; }
+        h1, h2 { border-bottom: 2px solid teal; padding-bottom: 10px; }
+        .section { margin-bottom: 20px; padding: 15px; border: 1px solid #ccc; border-radius: 8px; }
+        button { padding: 10px 15px; margin: 5px; cursor: pointer; border-radius: 5px; border: 1px solid gray; background-color: #e9ecef; }
+        input[type="text"] { padding: 8px; margin-right: 5px; }
+        #location-details { list-style-type: none; padding: 0; }
+        #location-details li { padding: 8px; border-bottom: 1px solid #eee; }
+        #location-details code { background-color: #e0e0e0; padding: 2px 5px; border-radius: 3px; }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>Location & History 상세 실습</h1>
+
+        <div class="section">
+            <h2>Location 객체</h2>
+            <p>현재 페이지의 URL 정보를 보여주고 제어합니다.</p>
+            <ul id="location-details">
+                </ul>
+            <button id="reload-btn">페이지 새로고침 (reload)</button>
+            <button id="assign-btn">네이버로 이동 (assign)</button>
+        </div>
+
+        <div class="section">
+            <h2>History 객체</h2>
+            <p>브라우저의 방문 기록을 제어합니다. (실습을 위해 다른 페이지를 방문한 후 시도해보세요)</p>
+            <button id="back-btn">뒤로 가기 (back)</button>
+            <button id="forward-btn">앞으로 가기 (forward)</button>
+            <button id="go-btn">2페이지 뒤로 가기 (go(-2))</button>
+        </div>
+    </div>
+
+    <script>
+    /*
+    ==================================================================================
+    ## 1. 개념 설명: Location & History 객체란?
+    ==================================================================================
+    `location`과 `history`는 `window` 객체에 속한 BOM(Browser Object Model)의 일부로,
+    각각 브라우저의 **주소 표시줄**과 **방문 기록**을 제어하는 역할을 합니다.
+    🌍 **`location` 객체 (현재 위치 정보)**
+    - **개념**: 현재 페이지의 URL에 대한 정보를 담고 있는 객체입니다.
+    - **비유**: 웹 브라우저라는 자동차의 "현재 주소" 또는 "내비게이션 목적지"와 같습니다.
+    - **주요 역할**:
+        1.  현재 URL의 각 부분(프로토콜, 호스트 이름, 경로 등)을 읽어올 수 있습니다.
+        2.  `href` 속성에 새로운 URL을 할당하여 다른 페이지로 이동시킬 수 있습니다.
+    📚 **`history` 객체 (방문 기록 정보)**
+    - **개념**: 사용자가 현재 탭에서 탐색한 페이지들의 기록을 담고 있는 객체입니다.
+    - **비유**: 웹 브라우저라는 자동차의 "최근 주행 기록" 또는 "방문했던 장소 목록"과 같습니다.
+    - **주요 역할**:
+        1.  사용자를 이전 또는 다음 페이지로 이동시킵니다. (브라우저의 뒤로/앞으로 가기 버튼과 동일)
+        2.  방문 기록 내의 특정 지점으로 한 번에 이동할 수 있습니다.
+    - **보안**: 보안상의 이유로, JavaScript는 `history` 객체를 통해 사용자가 방문했던 URL 주소를 직접 읽을 수는 없습니다. 오직 페이지 이동 제어만 가능합니다.
+    */
+
+    /*
+    ==================================================================================
+    ## 2. 주요 기능 (프로퍼티 및 메서드) 설명
+    ==================================================================================
+    --- 🌍 Location 객체의 주요 기능 ---
+    `location` 객체는 주로 속성(Property)에 값을 읽거나 할당하여 사용합니다.
+    - **`location.href`** (가장 중요)
+        - **설명**: 전체 URL 주소를 담고 있는 문자열입니다.
+        - **읽기**: `const currentUrl = location.href;` // 현재 페이지의 전체 주소를 가져옴
+        - **쓰기**: `location.href = 'https://www.naver.com';` // 해당 주소로 페이지를 즉시 이동시킴
+    - **`location.protocol`**: URL의 프로토콜을 반환합니다. (예: "http:", "https:")
+    - **`location.hostname`**: URL의 호스트 이름을 반환합니다. (예: "www.google.com", "127.0.0.1")
+    - **`location.port`**: URL의 포트 번호를 반환합니다. (포트가 명시되지 않으면 빈 문자열 "" 반환)
+    - **`location.pathname`**: URL의 경로 부분을 반환합니다. (예: "/products/index.html")
+    - **`location.search`**: URL의 쿼리 문자열('?' 포함)을 반환합니다. (예: "?id=123&category=books")
+    - **`location.hash`**: URL의 해시('#' 포함) 부분을 반환합니다. (예: "#section-1")
+    - **`location.reload()`**
+        - **설명**: 현재 페이지를 새로고침합니다. 브라우저의 새로고침 버튼과 동일한 기능을 수행하는 메서드입니다.
+        - **예시**: `location.reload();`
+    - **`location.assign(url)`**
+        - **설명**: 지정된 URL로 페이지를 이동시킵니다. `location.href`에 URL을 할당하는 것과 거의 동일한 기능을 하지만, 메서드 형태라는 차이가 있습니다.
+        - **예시**: `location.assign('https://www.naver.com');`
+    --- 📚 History 객체의 주요 기능 ---
+    `history` 객체는 주로 메서드(Method)를 호출하여 사용합니다.
+    - **`history.back()`**
+        - **설명**: 방문 기록에서 바로 이전 페이지로 이동합니다. 브라우저의 '뒤로 가기' 버튼과 100% 동일합니다.
+        - **예시**: `history.back();`
+    - **`history.forward()`**
+        - **설명**: 방문 기록에서 바로 다음 페이지로 이동합니다. 브라우저의 '앞으로 가기' 버튼과 100% 동일합니다.
+        - **예시**: `history.forward();`
+    - **`history.go(number)`**
+        - **설명**: 방문 기록에서 현재 페이지를 기준으로 상대적인 위치로 이동합니다.
+        - **`go(-1)`**: `back()`과 동일
+        - **`go(1)`**: `forward()`과 동일
+        - **`go(-2)`**: 두 페이지 뒤로 이동
+        - **`go(0)`**: 현재 페이지 새로고침
+        - **예시**: `history.go(-2);` // 두 단계 이전 페이지로 이동
+    - **`history.length`**
+        - **설명**: 현재 탭의 방문 기록 스택에 쌓인 페이지의 수를 반환하는 프로퍼티입니다.
+        - **예시**: `console.log(history.length);`
+    */
+
+    /*
+    ==================================================================================
+    ## 3. 실제 실습 (Interactive Example)
+    ==================================================================================
+    */
+
+    // --- 1. 페이지가 로드되면 Location 객체의 정보를 화면에 표시합니다. ---
+    document.addEventListener('DOMContentLoaded', () => {
+        const detailsList = document.getElementById('location-details');
+        detailsList.innerHTML = `
+            <li><code>location.href</code>: ${location.href}</li>
+            <li><code>location.protocol</code>: ${location.protocol}</li>
+            <li><code>location.hostname</code>: ${location.hostname}</li>
+            <li><code>location.port</code>: ${location.port || '(없음)'}</li>
+            <li><code>location.pathname</code>: ${location.pathname}</li>
+            <li><code>history.length</code>: ${history.length}</li>
+        `;
+    });
+
+
+    // --- 2. 각 버튼에 클릭 이벤트 리스너를 연결하여 기능을 구현합니다. ---
+
+    // [Location] 새로고침 버튼
+    document.getElementById('reload-btn').addEventListener('click', () => {
+        alert('페이지를 새로고침합니다.');
+        location.reload();
+    });
+
+    // [Location] 네이버로 이동 버튼
+    document.getElementById('assign-btn').addEventListener('click', () => {
+        if (confirm('네이버로 이동하시겠습니까?')) {
+            location.assign('https://www.naver.com');
+        }
+    });
+
+    // [History] 뒤로 가기 버튼
+    document.getElementById('back-btn').addEventListener('click', () => {
+        // history.length가 1보다 클 때만 뒤로 갈 수 있음
+        if (history.length > 1) {
+            alert('이전 페이지로 이동합니다.');
+            history.back();
+        } else {
+            alert('이전 방문 기록이 없습니다.');
+        }
+    });
+
+    // [History] 앞으로 가기 버튼
+    document.getElementById('forward-btn').addEventListener('click', () => {
+        alert('다음 페이지로 이동을 시도합니다. (다음 기록이 없으면 이동하지 않습니다)');
+        history.forward();
+    });
+
+    // [History] 2페이지 뒤로 가기 버튼
+    document.getElementById('go-btn').addEventListener('click', () => {
+        if (history.length > 2) {
+            alert('2페이지 이전 기록으로 이동합니다.');
+            history.go(-2);
+        } else {
+            alert('2페이지 이전 방문 기록이 없습니다.');
+        }
+    });
+    </script>
+</body>
+</html>
