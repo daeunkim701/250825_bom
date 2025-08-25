@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>Web Storage 상세 실습 (localStorage & sessionStorage)</title>
+    <style>
+        body { font-family: sans-serif; line-height: 1.8; padding: 25px; }
+        .container { max-width: 800px; margin: auto; border: 1px solid lightgray; padding: 20px; border-radius: 10px; }
+        h1, h2 { border-bottom: 2px solid cornflowerblue; padding-bottom: 10px; }
+        .controls { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px; }
+        .storage-box { padding: 15px; border: 1px solid #ccc; border-radius: 8px; }
+        input[type="text"] { width: calc(100% - 16px); padding: 8px; margin-bottom: 10px; }
+        button { padding: 10px; margin: 2px; cursor: pointer; border-radius: 5px; border: 1px solid gray; }
+        .result-box { margin-top: 20px; padding: 15px; background-color: lightyellow; border: 1px solid orange; border-radius: 5px; }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>Web Storage 상세 실습</h1>
+        <div class="controls">
+            <div class="storage-box">
+                <h2>localStorage</h2>
+                <input type="text" id="local-key" placeholder="Key 입력">
+                <input type="text" id="local-value" placeholder="Value 입력">
+                <button id="local-set">저장 (setItem)</button>
+                <button id="local-get">읽기 (getItem)</button>
+                <button id="local-remove">삭제 (removeItem)</button>
+                <button id="local-clear">전체 삭제 (clear)</button>
+            </div>
+            <div class="storage-box">
+                <h2>sessionStorage</h2>
+                <input type="text" id="session-key" placeholder="Key 입력">
+                <input type="text" id="session-value" placeholder="Value 입력">
+                <button id="session-set">저장 (setItem)</button>
+                <button id="session-get">읽기 (getItem)</button>
+                <button id="session-remove">삭제 (removeItem)</button>
+                <button id="session-clear">전체 삭제 (clear)</button>
+            </div>
+        </div>
+        <div class="result-box">
+            <h3>결과</h3>
+            <p id="result">동작 결과가 여기에 표시됩니다.</p>
+        </div>
+    </div>
+
+    <script>
+    /*
+    ==================================================================================
+    ## 1. 개념 설명: Web Storage란?
+    ==================================================================================
+    Web Storage는 웹 브라우저가 서버가 아닌 **클라이언트(사용자 컴퓨터) 측에 데이터를 저장**할 수 있도록 하는 기술입니다.
+    과거에 사용되던 '쿠키(Cookie)'의 단점을 보완하며 등장했으며, 더 많은 양의 데이터를 안전하고 쉽게 저장할 수 있습니다.
+    ✅ **주요 특징**:
+    - **Key-Value 저장**: 모든 데이터는 '키(Key)'와 '값(Value)'의 쌍으로 저장됩니다.
+    - **문자열 데이터만 저장**: 값(Value)은 반드시 문자열(String) 형태로 저장됩니다. (객체나 배열을 저장하려면 JSON.stringify()를 사용해야 합니다.)
+    - **서버 전송 없음**: 쿠키와 달리, Web Storage의 데이터는 HTTP 요청 시마다 서버로 자동 전송되지 않아 성능에 이점을 가집니다.
+    - **동일 출처 정책(Same-Origin Policy)**: 데이터는 프로토콜, 호스트, 포트가 모두 동일한 '출처(Origin)' 내에서만 접근 가능하여 보안성이 높습니다.
+      (예: https://www.google.com 에서 저장한 데이터는 https://www.naver.com 에서 접근 불가)
+    - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    💡 **localStorage vs. sessionStorage: 결정적 차이점**
+    Web Storage는 두 가지 종류의 저장소를 제공하며, 가장 큰 차이는 **데이터의 생명주기(Life Cycle)**입니다.
+    1.  **localStorage (영구적 데이터 저장소)**
+        - **생명주기**: 사용자가 직접 데이터를 삭제하지 않는 한, **브라우저를 껐다 켜도 데이터가 사라지지 않고 영구적으로 유지**됩니다.
+        - **공유 범위**: 동일한 출처의 **모든 탭과 창에서 데이터가 공유**됩니다.
+          (예: 1번 탭에서 localStorage에 저장한 데이터는 2번 탭에서도 읽고 쓸 수 있습니다.)
+        - **주요 용도**: 자동 로그인 정보, 사용자가 설정한 UI 테마(다크 모드 등), 장바구니 정보 등 지속적으로 유지되어야 하는 데이터에 적합합니다.
+    2.  **sessionStorage (일시적 데이터 저장소)**
+        - **생명주기**: **브라우저 탭(또는 창)이 열려 있는 동안만 데이터가 유지**됩니다. 탭을 닫는 순간 데이터는 즉시 삭제됩니다.
+        - **공유 범위**: 데이터가 **각 탭별로 격리**됩니다. 같은 사이트라도 다른 탭에서는 데이터를 공유하지 않습니다.
+          (예: 1번 탭에서 sessionStorage에 저장한 데이터는 2번 탭에서 접근할 수 없습니다.)
+        - **주요 용도**: 일회성 로그인 정보, 잠시 동안만 유지되어야 하는 입력 폼 데이터, 탭마다 다르게 관리되어야 할 상태 정보 등에 적합합니다.
+    */
+
+    /*
+    ==================================================================================
+    ## 2. 주요 기능 (API 메서드) 설명
+    ==================================================================================
+    localStorage와 sessionStorage는 아래의 4가지 공통 메서드를 사용하여 데이터를 조작합니다.
+    사용법은 완전히 동일하며, `localStorage`를 `sessionStorage`로 바꾸기만 하면 됩니다.
+    1.  **setItem(key, value)**
+        - **설명**: 지정된 'key'에 'value'를 저장합니다. 만약 동일한 'key'가 이미 존재한다면, 기존 값을 새로운 'value'로 덮어씁니다.
+        - **예시**: `localStorage.setItem('username', 'Alice');`
+    2.  **getItem(key)**
+        - **설명**: 지정된 'key'에 해당하는 'value'를 반환합니다. 만약 'key'가 존재하지 않으면 `null`을 반환합니다.
+        - **예시**: `const username = localStorage.getItem('username'); // "Alice"`
+    3.  **removeItem(key)**
+        - **설명**: 지정된 'key'와 그에 해당하는 'value'를 저장소에서 삭제합니다.
+        - **예시**: `localStorage.removeItem('username');`
+    4.  **clear()**
+        - **설명**: 해당 저장소(localStorage 또는 sessionStorage)의 **모든 key-value 데이터를 한번에 삭제**합니다.
+        - **예시**: `localStorage.clear();`
+    ✨ **Tip**: 메서드 대신 객체의 프로퍼티처럼 직접 접근하여 값을 설정하거나 읽을 수도 있지만,
+      API 메서드(setItem, getItem 등)와 충돌할 수 있는 'length', 'clear' 같은 키 이름 사용에 제약이 있으므로,
+      가급적이면 위에 명시된 공식 메서드를 사용하는 것이 안전하고 권장됩니다.
+      - (비권장) `localStorage.username = 'Bob';`
+      - (비권장) `const user = localStorage.username;`
+    */
+
+    /*
+    ==================================================================================
+    ## 3. 실제 실습 (Interactive Example)
+    ==================================================================================
+    */
+
+    // --- 1. 실습에 필요한 HTML 요소들을 미리 찾아 변수에 할당합니다. ---
+
+    // 결과 표시 영역
+    const resultDiv = document.getElementById('result');
+
+    // localStorage 관련 요소
+    const localKeyInput = document.getElementById('local-key');
+    const localValueInput = document.getElementById('local-value');
+    const localSetBtn = document.getElementById('local-set');
+    const localGetBtn = document.getElementById('local-get');
+    const localRemoveBtn = document.getElementById('local-remove');
+    const localClearBtn = document.getElementById('local-clear');
+
+    // sessionStorage 관련 요소
+    const sessionKeyInput = document.getElementById('session-key');
+    const sessionValueInput = document.getElementById('session-value');
+    const sessionSetBtn = document.getElementById('session-set');
+    const sessionGetBtn = document.getElementById('session-get');
+    const sessionRemoveBtn = document.getElementById('session-remove');
+    const sessionClearBtn = document.getElementById('session-clear');
+
+
+    // --- 2. 각 버튼에 클릭 이벤트 리스너를 연결하여 기능을 구현합니다. ---
+
+    // [localStorage] 저장 버튼
+    localSetBtn.addEventListener('click', () => {
+        const key = localKeyInput.value;
+        const value = localValueInput.value;
+        if (!key || !value) {
+            resultDiv.textContent = "localStorage: Key와 Value를 모두 입력해주세요.";
+            return;
+        }
+        localStorage.setItem(key, value);
+        resultDiv.textContent = `localStorage에 Key: '${key}', Value: '${value}' (이)가 저장되었습니다.`;
+    });
+
+    // [localStorage] 읽기 버튼
+    localGetBtn.addEventListener('click', () => {
+        const key = localKeyInput.value;
+        if (!key) {
+            resultDiv.textContent = "localStorage: 조회할 Key를 입력해주세요.";
+            return;
+        }
+        const value = localStorage.getItem(key);
+        resultDiv.textContent = value ? `localStorage에서 읽은 '${key}'의 값: ${value}` : `localStorage에 '${key}' 키가 존재하지 않습니다.`;
+    });
+
+    // [localStorage] 삭제 버튼
+    localRemoveBtn.addEventListener('click', () => {
+        const key = localKeyInput.value;
+        if (!key) {
+            resultDiv.textContent = "localStorage: 삭제할 Key를 입력해주세요.";
+            return;
+        }
+        localStorage.removeItem(key);
+        resultDiv.textContent = `localStorage에서 '${key}' 항목을 삭제했습니다.`;
+    });
+
+    // [localStorage] 전체 삭제 버튼
+    localClearBtn.addEventListener('click', () => {
+        localStorage.clear();
+        resultDiv.textContent = "localStorage의 모든 데이터가 삭제되었습니다.";
+    });
+
+
+    // [sessionStorage] 저장 버튼
+    sessionSetBtn.addEventListener('click', () => {
+        const key = sessionKeyInput.value;
+        const value = sessionValueInput.value;
+        if (!key || !value) {
+            resultDiv.textContent = "sessionStorage: Key와 Value를 모두 입력해주세요.";
+            return;
+        }
+        sessionStorage.setItem(key, value);
+        resultDiv.textContent = `sessionStorage에 Key: '${key}', Value: '${value}' (이)가 저장되었습니다. (탭을 닫으면 사라집니다.)`;
+    });
+
+    // [sessionStorage] 읽기 버튼
+    sessionGetBtn.addEventListener('click', () => {
+        const key = sessionKeyInput.value;
+        if (!key) {
+            resultDiv.textContent = "sessionStorage: 조회할 Key를 입력해주세요.";
+            return;
+        }
+        const value = sessionStorage.getItem(key);
+        resultDiv.textContent = value ? `sessionStorage에서 읽은 '${key}'의 값: ${value}` : `sessionStorage에 '${key}' 키가 존재하지 않습니다.`;
+    });
+
+    // [sessionStorage] 삭제 버튼
+    sessionRemoveBtn.addEventListener('click', () => {
+        const key = sessionKeyInput.value;
+        if (!key) {
+            resultDiv.textContent = "sessionStorage: 삭제할 Key를 입력해주세요.";
+            return;
+        }
+        sessionStorage.removeItem(key);
+        resultDiv.textContent = `sessionStorage에서 '${key}' 항목을 삭제했습니다.`;
+    });
+
+    // [sessionStorage] 전체 삭제 버튼
+    sessionClearBtn.addEventListener('click', () => {
+        sessionStorage.clear();
+        resultDiv.textContent = "sessionStorage의 모든 데이터가 삭제되었습니다.";
+    });
+    </script>
+</body>
+</html>
